@@ -467,6 +467,7 @@ public:
 	ASFUNCTION(_getScaleMode);
 	ASFUNCTION(_setScaleMode);
 	ASFUNCTION(_getLoaderInfo);
+	ASFUNCTION(_invalidate);
 };
 
 class StageScaleMode: public ASObject

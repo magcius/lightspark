@@ -2253,6 +2253,7 @@ void Stage::sinit(Class_base* c)
 	c->setGetterByQName("scaleMode","",Class<IFunction>::getFunction(_getScaleMode),true);
 	c->setSetterByQName("scaleMode","",Class<IFunction>::getFunction(_setScaleMode),true);
 	c->setGetterByQName("loaderInfo","",Class<IFunction>::getFunction(_getLoaderInfo),true);
+	c->setMethodByQName("invalidate","",Class<IFunction>::getFunction(_invalidate),true);
 }
 
 void Stage::buildTraits(ASObject* o)
@@ -2343,6 +2344,13 @@ ASFUNCTIONBODY(Stage,_setScaleMode)
 	RenderThread* rt=sys->getRenderThread();
 	if(rt)
 		rt->requestResize(rt->windowWidth, rt->windowHeight);
+	return NULL;
+}
+
+ASFUNCTIONBODY(Stage,_invalidate)
+{
+	Stage* th=static_cast<Stage*>(obj);
+	th->requestInvalidation();
 	return NULL;
 }
 
