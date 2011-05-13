@@ -30,8 +30,8 @@
 #include "asobject.h"
 #include "scripting/class.h"
 #include "backends/rendering.h"
+#include "backends/engine.h"
 
-#include "SDL.h"
 #include <GL/glew.h>
 #ifdef ENABLE_CURL
 #include <curl/curl.h>
@@ -180,8 +180,8 @@ void SystemState::staticDeinit()
 
 SystemState::SystemState(ParseThread* parseThread, uint32_t fileSize):
 	RootMovieClip(NULL,true),renderRate(0),error(false),shutdown(false),
-	renderThread(NULL),inputThread(NULL),engine(NONE),fileDumpAvailable(0),
-	waitingForDump(false),vmVersion(VMNONE),childPid(0),useGnashFallback(false),
+	renderThread(NULL),inputThread(NULL),engine(NULL),fileDumpAvailable(0),
+	waitingForDump(false),vmVersion(VMNONE),childPid(0),
 	parameters(NullRef),mutexEnterFrameListeners("mutexEnterFrameListeners"),
 	invalidateQueueHead(NullRef),invalidateQueueTail(NullRef),showProfilingData(false),
 	currentVm(NULL),useInterpreter(true),useJit(false),downloadManager(NULL),
@@ -236,8 +236,7 @@ void SystemState::setCookies(const char* c)
 
 void SystemState::parseParametersFromFlashvars(const char* v)
 {
-	if(useGnashFallback) //Save a copy of the string
-		rawParameters=v;
+	rawParameters=v;
 	_R<ASObject> params=_MR(Class<ASObject>::getInstanceS());
 	//Add arguments to SystemState
 	string vars(v);
@@ -491,15 +490,6 @@ void SystemState::setShutdownFlag()
 void SystemState::wait()
 {
 	sem_wait(&terminated);
-	if(engine==SDL)
-	{
-		SDL_Event event;
-		event.type = SDL_USEREVENT;
-		event.user.code = SHUTDOWN;
-		event.user.data1 = 0;
-		event.user.data1 = 0;
-		SDL_PushEvent(&event);
-	}
 	//Acquire the mutex to sure that the engines are not being started right now
 	Locker l(mutex);
 	renderThread->wait();
@@ -532,55 +522,6 @@ void SystemState::EngineCreator::threadAbort()
 	sys->getRenderThread()->forceInitialization();
 }
 
-#ifndef GNASH_PATH
-#error No GNASH_PATH defined
-#endif
-
-void SystemState::enableGnashFallback()
-{
-	//Check if the gnash standalone executable is available
-	ifstream f(GNASH_PATH);
-	if(f)
-		useGnashFallback=true;
-	f.close();
-}
-
-#ifdef COMPILE_PLUGIN
-
-void SystemState::delayedCreation(SystemState* th)
-{
-	NPAPI_params& p=th->npapiParams;
-	//Create a plug in the XEmbed window
-	p.container=gtk_plug_new((GdkNativeWindow)p.window);
-	//Realize the widget now, as we need the X window
-	gtk_widget_realize(p.container);
-	//Show it now
-	gtk_widget_show(p.container);
-	gtk_widget_map(p.container);
-	p.window=GDK_WINDOW_XWINDOW(p.container->window);
-	XSync(p.display, False);
-	//The lock is needed to avoid thread creation/destruction races
-	Locker l(th->mutex);
-	if(th->shutdown)
-		return;
-	th->renderThread->start(th->engine, &th->npapiParams);
-	th->inputThread->start(th->engine, &th->npapiParams);
-	//If the render rate is known start the render ticks
-	if(th->renderRate)
-		th->startRenderTicks();
-}
-
-void SystemState::delayedStopping(SystemState* th)
-{
-	sys=th;
-	//This is called from the plugin, also kill the stream
-	th->npapiParams.stopDownloaderHelper(th->npapiParams.helperArg);
-	th->stopEngines();
-	sys=NULL;
-}
-
-#endif
-
 void SystemState::createEngines()
 {
 	Locker l(mutex);
@@ -589,188 +530,9 @@ void SystemState::createEngines()
 		//A shutdown request has arrived before the creation of engines
 		return;
 	}
-#ifdef COMPILE_PLUGIN
-	//Check if we should fall back on gnash
-	if(useGnashFallback && engine==GTKPLUG && vmVersion!=AVM2)
-	{
-		if(dumpedSWFPath.len()==0) //The path is not known yet
-		{
-			waitingForDump=true;
-			l.unlock();
-			fileDumpAvailable.wait();
-			if(shutdown)
-				return;
-			l.lock();
-		}
-		LOG(LOG_NO_INFO,_("Trying to invoke gnash!"));
-		//Dump the cookies to a temporary file
-		strcpy(cookiesFileName,"/tmp/lightsparkcookiesXXXXXX");
-		int file=mkstemp(cookiesFileName);
-		if(file!=-1)
-		{
-			std::string data("Set-Cookie: " + rawCookies);
-			size_t res;
-			size_t written = 0;
-			// Keep writing until everything we wanted to write actually got written
-			do
-			{
-				res = write(file, data.c_str()+written, data.size()-written);
-				if(res < 0)
-				{
-					LOG(LOG_ERROR, _("Error during writing of cookie file for Gnash"));
-					break;
-				}
-				written += res;
-			} while(written < data.size());
-			close(file);
-			setenv("GNASH_COOKIES_IN", cookiesFileName, 1);
-		}
-		else
-			cookiesFileName[0]=0;
-		sigset_t oldset;
-		sigset_t set;
-		sigfillset(&set);
-		//Blocks all signal to avoid terminating while forking with the browser signal handlers on
-		pthread_sigmask(SIG_SETMASK, &set, &oldset);
 
-		// This will be used to pipe the SWF's data to Gnash's stdin
-		int gnashStdin[2];
-		pipe(gnashStdin);
+	engine->execute(this);
 
-		childPid=fork();
-		if(childPid==-1)
-		{
-			//Restore handlers
-			pthread_sigmask(SIG_SETMASK, &oldset, NULL);
-			LOG(LOG_ERROR,_("Child process creation failed, lightspark continues"));
-			childPid=0;
-		}
-		else if(childPid==0) //Child process scope
-		{
-			// Close write end of Gnash's stdin pipe, we will only read
-			close(gnashStdin[1]);
-			// Point stdin to the read end of Gnash's stdin pipe
-			dup2(gnashStdin[0], fileno(stdin));
-			// Close the read end of the pipe
-			close(gnashStdin[0]);
-
-			//Allocate some buffers to store gnash arguments
-			char bufXid[32];
-			char bufWidth[32];
-			char bufHeight[32];
-			snprintf(bufXid,32,"%lu",npapiParams.window);
-			snprintf(bufWidth,32,"%u",npapiParams.width);
-			snprintf(bufHeight,32,"%u",npapiParams.height);
-			string params("FlashVars=");
-			params+=rawParameters;
-			char *const args[] =
-			{
-				strdup("gnash"), //argv[0]
-				strdup("-x"), //Xid
-				bufXid,
-				strdup("-j"), //Width
-				bufWidth,
-				strdup("-k"), //Height
-				bufHeight,
-				strdup("-u"), //SWF url
-				strdup(origin.getParsedURL().raw_buf()),
-				strdup("-P"), //SWF parameters
-				strdup(params.c_str()),
-				strdup("-vv"),
-				strdup("-"),
-				NULL
-			};
-
-			// Print out an informative message about how we are invoking Gnash
-			{
-				int i = 1;
-				std::string argsStr = "";
-				while(args[i] != NULL)
-				{
-					argsStr += " ";
-					argsStr += args[i];
-					i++;
-				}
-				cerr << "Invoking '" << GNASH_PATH << argsStr << " < " << dumpedSWFPath.raw_buf() << "'" << endl;
-			}
-
-			//Avoid calling browser signal handler during the short time between enabling signals and execve
-			sigaction(SIGTERM, NULL, NULL);
-			//Restore handlers
-			pthread_sigmask(SIG_SETMASK, &oldset, NULL);
-			execve(GNASH_PATH, args, environ);
-			//If we are here execve failed, print an error and die
-			cerr << _("Execve failed, content will not be rendered") << endl;
-			exit(0);
-		}
-		else //Parent process scope
-		{
-			// Pass the SWF's data to Gnash
-			{
-				// Close read end of stdin pipe, we will only write to it.
-				close(gnashStdin[0]);
-				// Open the SWF file
-				std::ifstream swfStream(dumpedSWFPath.raw_buf(), ios::binary);
-				// Read the SWF file and write it to Gnash's stdin
-				char data[1024];
-				std::streamsize written, ret;
-				bool stop = false;
-				while(!swfStream.eof() && !swfStream.fail() && !stop)
-				{
-					swfStream.read(data, 1024);
-					// Keep writing until everything we wanted to write actually got written
-					written = 0;
-					do
-					{
-						ret = write(gnashStdin[1], data+written, swfStream.gcount()-written);
-						if(ret < 0)
-						{
-							LOG(LOG_ERROR, _("Error during writing of SWF file to Gnash"));
-							stop = true;
-							break;
-						}
-						written += ret;
-					} while(written < swfStream.gcount());
-				}
-				// Close the write end of Gnash's stdin, signalling EOF to Gnash.
-				close(gnashStdin[1]);
-				// Close the SWF file
-				swfStream.close();
-			}
-
-			//Restore handlers
-			pthread_sigmask(SIG_SETMASK, &oldset, NULL);
-			//Engines should not be started, stop everything
-			l.unlock();
-			//We cannot stop the engines now, as this is inside a ThreadPool job
-			npapiParams.helper(npapiParams.helperArg, (helper_t)delayedStopping, this);
-			return;
-		}
-	}
-#else 
-	//COMPILE_PLUGIN not defined
-	if(useGnashFallback && engine==GTKPLUG && vmVersion!=AVM2)
-	{
-		throw new UnsupportedException("GNASH fallback not available when not built with COMPILE_PLUGIN");
-	}
-#endif
-
-	if(engine==GTKPLUG) //The engines must be created in the context of the main thread
-	{
-#ifdef COMPILE_PLUGIN
-		npapiParams.helper(npapiParams.helperArg, (helper_t)delayedCreation, this);
-#else
-		throw new UnsupportedException("Plugin engine not available when not built with COMPILE_PLUGIN");
-#endif
-	}
-	else //SDL engine
-	{
-		renderThread->start(engine, NULL);
-		inputThread->start(engine, NULL);
-		//If the render rate is known start the render ticks
-		if(renderRate)
-			startRenderTicks();
-	}
 	l.unlock();
 	renderThread->waitForInitialization();
 	l.lock();
@@ -798,11 +560,9 @@ void SystemState::needsAVM2(bool n)
 		addJob(new EngineCreator);
 }
 
-void SystemState::setParamsAndEngine(ENGINE e, NPAPI_params* p)
+void SystemState::setEngine(Engine* e)
 {
 	Locker l(mutex);
-	if(p)
-		npapiParams=*p;
 	engine=e;
 	if(vmVersion)
 		addJob(new EngineCreator);

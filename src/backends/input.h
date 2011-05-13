@@ -20,9 +20,10 @@
 #ifndef INPUT_H
 #define INPUT_H
 
+#include "backends/engine.h"
+
 #include "compat.h"
 #include "threading.h"
-#include "platforms/pluginutils.h"
 #include "swftypes.h"
 #include "smartrefs.h"
 #include <vector>
@@ -37,21 +38,16 @@ class Sprite;
 
 class InputThread
 {
-private:
+public:
 	SystemState* m_sys;
 	pthread_t t;
 	bool terminated;
-	bool threaded;
-	static void* sdl_worker(InputThread*);
-#ifdef COMPILE_PLUGIN
-	NPAPI_params* npapi_params;
-	static gboolean gtkplug_worker(GtkWidget *widget, GdkEvent *event, InputThread* th);
-	static void delayedCreation(InputThread* th);
-#endif
 
 	std::vector<InteractiveObject* > listeners;
 	Mutex mutexListeners;
 	Mutex mutexDragged;
+
+	Engine* engine;
 
 	Sprite* curDragged;
 	_NR<InteractiveObject> lastMouseDownTarget;
@@ -71,11 +67,11 @@ private:
 	Spinlock inputDataSpinlock;
 	number_t mouseX;
 	number_t mouseY;
-public:
+
 	InputThread(SystemState* s);
 	~InputThread();
 	void wait();
-	void start(ENGINE e, void* param);
+	void start(Engine*);
 	void addListener(InteractiveObject* ob);
 	void removeListener(InteractiveObject* ob);
 	void enableDrag(Sprite* s, const RECT& limit);

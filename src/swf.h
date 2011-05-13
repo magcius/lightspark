@@ -41,8 +41,6 @@
 #include "backends/urlutils.h"
 #include "backends/extscriptobject.h"
 
-#include "platforms/pluginutils.h"
-
 #ifndef WIN32
 #include <GL/glx.h>
 #else
@@ -60,6 +58,8 @@ class InputThread;
 class RenderThread;
 class ParseThread;
 class Tag;
+class Engine;
+struct X11Params;
 
 //RootMovieClip is used as a ThreadJob for timed rendering purpose
 class RootMovieClip: public MovieClip, public ITickJob
@@ -169,8 +169,8 @@ private:
 	bool shutdown;
 	RenderThread* renderThread;
 	InputThread* inputThread;
-	NPAPI_params npapiParams;
-	ENGINE engine;
+	X11Params* x11Params;
+	Engine* engine;
 	void startRenderTicks();
 	/**
 		Create the rendering and input engines
@@ -194,7 +194,6 @@ private:
 	enum VMVERSION { VMNONE=0, AVM1, AVM2 };
 	VMVERSION vmVersion;
 	pid_t childPid;
-	bool useGnashFallback;
 
 	//Parameters/FlashVars
 	_NR<ASObject> parameters;
@@ -243,7 +242,6 @@ private:
 	ASFUNCTION(_getStage);
 public:
 	void setURL(const tiny_string& url) DLL_PUBLIC;
-	ENGINE getEngine() DLL_PUBLIC { return engine; };
 
 	//Interative analysis flags
 	bool showProfilingData;
@@ -260,10 +258,11 @@ public:
 	void wait() DLL_PUBLIC;
 	RenderThread* getRenderThread() const { return renderThread; }
 	InputThread* getInputThread() const { return inputThread; }
-	void setParamsAndEngine(ENGINE e, NPAPI_params* p) DLL_PUBLIC;
+	void setEngine(Engine*) DLL_PUBLIC;
 	void setDownloadedPath(const tiny_string& p) DLL_PUBLIC;
-	void enableGnashFallback() DLL_PUBLIC;
 	void needsAVM2(bool n);
+
+	void createGtkEngine();
 
 	//Be careful, SystemState constructor does some global initialization that must be done
 	//before any other thread gets started

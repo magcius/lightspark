@@ -30,6 +30,7 @@
 #include "backends/netutils.h"
 #include "backends/urlutils.h"
 #include "npscriptobject.h"
+#include "engine.h"
 #include <GL/glx.h>
 
 class NPDownloader;
@@ -64,7 +65,7 @@ public:
 	NPDownloader(const lightspark::tiny_string& _url, const std::vector<uint8_t>& _data, NPP _instance, lightspark::LoaderInfo* owner);
 };
 
-class nsPluginInstance : public nsPluginInstanceBase
+pclass nsPluginInstance : public nsPluginInstanceBase
 {
 public:
 	nsPluginInstance(NPP aInstance, int16_t argc, char** argn, char** argv);

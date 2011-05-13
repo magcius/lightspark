@@ -17,37 +17,17 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **************************************************************************/
 
-#ifndef PLUGINUTILS_H
-#define PLUGINUTILS_H
+#ifndef BACKENDS_GTKENGINE_H
+#define BACKENDS_GTKENGINE_H
 
-#ifdef COMPILE_PLUGIN
-#include <X11/Xlib.h>
-#include <gtk/gtk.h>
-#endif
+#include "backends/engine.h"
 
 namespace lightspark
 {
 
-enum ENGINE { NONE=0, SDL, GTKPLUG};
-typedef void(*helper_t)(void*);
-#ifdef COMPILE_PLUGIN
-struct NPAPI_params
-{
-	Display* display;
-	GtkWidget* container;
-	VisualID visual;
-	Window window;
-	int width;
-	int height;
-	void (*helper)(void* th, helper_t func, void* privArg);
-	void* helperArg;
-	void (*stopDownloaderHelper)(void* th);
+class GtkEngine : public Engine {
+    void execute(SystemState*);
 };
-#else
-struct NPAPI_params
-{
-};
-#endif
 
 };
 #endif

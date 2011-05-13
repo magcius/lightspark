@@ -29,11 +29,10 @@
 #include <fstream>
 #include "compat.h"
 
+#include "backends/gtkengine.h"
+
 #ifdef WIN32
 #include <windows.h>
-#endif
-#include <SDL.h>
-#ifdef WIN32
 #undef main
 #endif
 
@@ -227,9 +226,8 @@ int main(int argc, char* argv[])
 	if(profilingFileName)
 		sys->setProfilingOutput(profilingFileName);
 #endif
-	
-	SDL_Init ( SDL_INIT_VIDEO |SDL_INIT_EVENTTHREAD );
-	sys->setParamsAndEngine(SDL, NULL);
+
+	sys->setEngine(new GtkEngine());
 	sys->securityManager->setSandboxType(sandboxType);
 	if(sandboxType == SecurityManager::REMOTE)
 		LOG(LOG_NO_INFO, _("Running in remote sandbox"));
@@ -250,7 +248,6 @@ int main(int argc, char* argv[])
 	delete pt;
 
 	SystemState::staticDeinit();
-	SDL_Quit();
 	return 0;
 }
 

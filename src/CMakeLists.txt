@@ -33,9 +33,11 @@ SET(LIBSPARK_SOURCES
   backends/builtindecoder.cpp
   backends/config.cpp
   backends/decoder.cpp
+  backends/engine.cpp
   backends/extscriptobject.cpp
   backends/geometry.cpp
   backends/graphics.cpp
+  backends/gtkengine.cpp
   backends/input.cpp
   backends/netutils.cpp
   backends/pluginmanager.cpp

@@ -368,19 +368,6 @@ NPError nsPluginInstance::GetValue(NPPVariable aVariable, void *aValue)
 
 }
 
-void nsPluginInstance::AsyncHelper(void* th_void, helper_t func, void* privArg)
-{
-	nsPluginInstance* th=(nsPluginInstance*)th_void;
-	NPN_PluginThreadAsyncCall(th->mInstance, func, privArg);
-}
-
-void nsPluginInstance::StopDownloaderHelper(void* th_void)
-{
-	nsPluginInstance* th=(nsPluginInstance*)th_void;
-	if(th->mainDownloader)
-		th->mainDownloader->stop();
-}
-
 NPError nsPluginInstance::SetWindow(NPWindow* aWindow)
 {
 	if(aWindow == NULL)
@@ -412,20 +399,22 @@ NPError nsPluginInstance::SetWindow(NPWindow* aWindow)
 		mDepth = ws_info->depth;
 		mColormap = ws_info->colormap;
 
-		lightspark::NPAPI_params p;
+		lightspark::X11Params *p = new lightspark::X11Params;
 
-		p.visual=XVisualIDFromVisual(mVisual);
-		p.container=NULL;
-		p.display=mDisplay;
-		p.window=mWindow;
-		p.width=mWidth;
-		p.height=mHeight;
+		p->visual=mVisual;
+		p->container=NULL;
+		p->display=mDisplay;
+		p->window=mWindow;
+		p->width=mWidth;
+		p->height=mHeight;
 		//TODO: Refactor into virtual interface
-		p.helper=AsyncHelper;
-		p.helperArg=this;
-		p.stopDownloaderHelper=StopDownloaderHelper;
 		LOG(LOG_NO_INFO,"X Window " << hex << p.window << dec << " Width: " << p.width << " Height: " << p.height);
-		m_sys->setParamsAndEngine(lightspark::GTKPLUG,&p);
+
+		lightspark::Engine *engine = new lightspark::GtkPluginEngine;
+		engine->pluginInst=this;
+		engine->x11Params=p;
+
+		m_sys->setParamsAndEngine(engine);
 	}
 	//draw();
 	return TRUE;

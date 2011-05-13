@@ -20,25 +20,27 @@
 #ifndef RENDERING_H
 #define RENDERING_H
 
+#include "backends/graphics.h"
+#include "backends/engine.h"
+
 #include "timer.h"
 #include <FTGL/ftgl.h>
+
+#ifndef WIN32
+#include <GL/glx.h>
+#endif
 
 namespace lightspark
 {
 
 class RenderThread: public ITickJob
 {
-friend class DisplayObject;
-private:
+public:
 	SystemState* m_sys;
 	pthread_t t;
 	enum STATUS { CREATED=0, STARTED, TERMINATED };
 	STATUS status;
-	static void* sdl_worker(RenderThread*);
-#ifdef COMPILE_PLUGIN
-	NPAPI_params* npapi_params;
-	static void* gtkplug_worker(RenderThread*);
-#endif
+	Engine* engine;
 	void commonGLInit(int width, int height);
 	void commonGLResize();
 	void commonGLDeinit();
@@ -114,10 +116,11 @@ private:
 		MaskData(DisplayObject* _d, const MATRIX& _m):d(_d),m(_m){}
 	};
 	std::vector<MaskData> maskStack;
-public:
+
 	RenderThread(SystemState* s);
 	~RenderThread();
-	void start(ENGINE e,void* param);
+	void start(Engine* e);
+
 	/*
 	   The stop function should be call on exit even if the thread is not started
 	*/
