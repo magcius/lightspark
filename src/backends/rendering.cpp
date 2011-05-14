@@ -535,7 +535,7 @@ void RenderThread::coreRendering(FTFont& font)
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glDrawBuffer(GL_BACK);
 	//Clear the back buffer
-	RGB bg=sys->getBackground();
+	RGB bg=m_sys->getBackground();
 	glClearColor(bg.Red/255.0F,bg.Green/255.0F,bg.Blue/255.0F,1);
 	glClear(GL_COLOR_BUFFER_BIT);
 	glLoadIdentity();

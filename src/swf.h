@@ -67,10 +67,10 @@ class RootMovieClip: public MovieClip, public ITickJob
 friend class ParseThread;
 protected:
 	Mutex mutex;
+public:
 	bool initialized;
 	URLInfo origin;
 	void tick();
-private:
 	//Semaphore to wait for new frames to be available
 	sem_t new_frame;
 	bool parsingIsFailed;
@@ -86,7 +86,6 @@ private:
 	tiny_string bindName;
 	Mutex mutexChildrenClips;
 	std::set<MovieClip*> childrenClips;
-public:
 	RootMovieClip(LoaderInfo* li, bool isSys=false);
 	~RootMovieClip();
 	uint32_t version;
@@ -178,14 +177,6 @@ private:
 		@pre engine and useAVM2 are known
 	*/
 	void createEngines();
-	/**
-	  	Destroys all the engines used in lightspark: timer, thread pool, vm...
-	*/
-#ifdef COMPILE_PLUGIN
-	static void delayedCreation(SystemState* th);
-	static void delayedStopping(SystemState* th);
-#endif
-	void stopEngines();
 	//Useful to wait for complete download of the SWF
 	Semaphore fileDumpAvailable;
 	tiny_string dumpedSWFPath;
@@ -259,10 +250,13 @@ public:
 	RenderThread* getRenderThread() const { return renderThread; }
 	InputThread* getInputThread() const { return inputThread; }
 	void setEngine(Engine*) DLL_PUBLIC;
+	void createGtkEngine() DLL_PUBLIC;
 	void setDownloadedPath(const tiny_string& p) DLL_PUBLIC;
 	void needsAVM2(bool n);
-
-	void createGtkEngine();
+	/**
+	  	Destroys all the engines used in lightspark: timer, thread pool, vm...
+	*/
+	void stopEngines();
 
 	//Be careful, SystemState constructor does some global initialization that must be done
 	//before any other thread gets started

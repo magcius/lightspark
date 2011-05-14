@@ -29,8 +29,6 @@
 #include <fstream>
 #include "compat.h"
 
-#include "backends/gtkengine.h"
-
 #ifdef WIN32
 #include <windows.h>
 #undef main
@@ -227,7 +225,7 @@ int main(int argc, char* argv[])
 		sys->setProfilingOutput(profilingFileName);
 #endif
 
-	sys->setEngine(new GtkEngine());
+	sys->createGtkEngine();
 	sys->securityManager->setSandboxType(sandboxType);
 	if(sandboxType == SecurityManager::REMOTE)
 		LOG(LOG_NO_INFO, _("Running in remote sandbox"));

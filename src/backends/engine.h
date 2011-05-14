@@ -42,7 +42,8 @@ class Engine {
 public:
     gboolean inputWorker(GtkWidget*, GdkEvent*, InputThread*);
     void* renderWorker(RenderThread*);
-    virtual void execute(SystemState*);
+    virtual void execute(SystemState*) = 0;
+    virtual void bootstrap(SystemState*) = 0;
     X11Params* x11Params;
     SystemState* system;
 

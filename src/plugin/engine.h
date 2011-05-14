@@ -21,13 +21,22 @@
 #define PLUGIN_ENGINE_H
 
 #include "backends/engine.h"
+#include "plugin/plugin.h"
 
 namespace lightspark
 {
 
 class GtkPlugEngine : public Engine {
+public:
     void execute(SystemState*);
     nsPluginInstance *pluginInst;
+
+    ~GtkPlugEngine ();
+
+private:
+    static void delayedCreation(GtkPlugEngine*);
+    static void delayedStopping(GtkPlugEngine*);
+    void tryGnash(SystemState*);
 };
 
 };

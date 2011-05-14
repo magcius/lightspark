@@ -33,6 +33,8 @@ using namespace lightspark;
 void* Engine::renderWorker(RenderThread* th)
 {
     SystemState* sys=system;
+    rt=th;
+
 	X11Params* p=x11Params;
 	SemaphoreLighter lighter(th->initialized);
 

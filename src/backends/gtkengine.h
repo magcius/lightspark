@@ -26,7 +26,9 @@ namespace lightspark
 {
 
 class GtkEngine : public Engine {
+    static void destroy(GtkWidget*, void*);
     void execute(SystemState*);
+    void bootstrap(SystemState*);
 };
 
 };

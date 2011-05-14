@@ -29,7 +29,12 @@
 
 using namespace lightspark;
 
-void GtkEngine::execute(SystemState *sys) {
+void GtkEngine::destroy(GtkWidget *widget, void *user_data) {
+    GtkEngine *th = (GtkEngine*)user_data;
+    th->system->stopEngines();
+}
+
+void GtkEngine::bootstrap(SystemState *sys) {
     gtk_init(0, NULL);
     system=sys;
 
@@ -37,6 +42,20 @@ void GtkEngine::execute(SystemState *sys) {
 
     GtkWidget *window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     p->container=window;
+
+    RECT size=system->getFrameSize();
+    p->width=size.Xmax/20;
+    p->height=size.Ymax/20;
+
+    g_signal_connect(G_OBJECT(window), "destroy", G_CALLBACK(destroy), this);
+    gtk_window_set_title(GTK_WINDOW(window), "Lightspark");
+    gtk_window_set_default_size(GTK_WINDOW(window), p->width, p->height);
+    // gtk_window_set_resizable(GTK_WINDOW(window), FALSE);
+
+    // We need the X window.
+    gtk_widget_realize(window);
+    gtk_widget_show(window);
+    gtk_widget_map(window);
 
     GdkWindow *gdk = gtk_widget_get_window(window);
 
@@ -46,14 +65,14 @@ void GtkEngine::execute(SystemState *sys) {
     Visual *vis=gdk_x11_visual_get_xvisual(gdk_window_get_visual(gdk));
 
     p->visual=XVisualIDFromVisual(vis);
-    RECT size=system->getFrameSize();
-    p->width=size.Xmax/20;
-    p->height=size.Ymax/20;
 
     x11Params=p;
 
-    gtk_widget_show_all(window);
 	sys->getRenderThread()->start(this);
 	sys->getInputThread()->start(this);
+
     gtk_main();
+}
+
+void GtkEngine::execute(SystemState *sys) {
 }

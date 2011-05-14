@@ -18,7 +18,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **************************************************************************/
 
-#include "plugin.h"
+#include "plugin/engine.h"
+#include <gtk/gtk.h>
+#include <gdk/gdk.h>
+#include <gdk/gdkx.h>
+
+using namespace lightspark;
 
 void GtkPlugEngine::delayedCreation(GtkPlugEngine* th)
 {
@@ -44,7 +49,7 @@ void GtkPlugEngine::delayedCreation(GtkPlugEngine* th)
 		th->startRenderTicks();
 }
 
-void GtkPluginEngine::delayedStopping(GtkPlugEngine* th)
+void GtkPlugEngine::delayedStopping(GtkPlugEngine* th)
 {
 	//This is called from the plugin, also kill the stream
     th->pluginInst->mainDownloader->stop();

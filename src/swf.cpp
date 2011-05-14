@@ -31,6 +31,7 @@
 #include "scripting/class.h"
 #include "backends/rendering.h"
 #include "backends/engine.h"
+#include "backends/gtkengine.h"
 
 #include <GL/glew.h>
 #ifdef ENABLE_CURL
@@ -531,7 +532,7 @@ void SystemState::createEngines()
 		return;
 	}
 
-	engine->execute(this);
+	engine->bootstrap(this);
 
 	l.unlock();
 	renderThread->waitForInitialization();
@@ -541,6 +542,7 @@ void SystemState::createEngines()
 		return;
 	if(currentVm)
 		currentVm->start();
+	engine->execute(this);
 }
 
 void SystemState::needsAVM2(bool n)
@@ -566,6 +568,11 @@ void SystemState::setEngine(Engine* e)
 	engine=e;
 	if(vmVersion)
 		addJob(new EngineCreator);
+}
+
+void SystemState::createGtkEngine()
+{
+	setEngine(new GtkEngine());
 }
 
 void SystemState::setRenderRate(float rate)

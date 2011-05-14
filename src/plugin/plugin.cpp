@@ -26,6 +26,7 @@
 #include "backends/urlutils.h"
 
 #include "npscriptobject.h"
+#include "engine.h"
 
 #define MIME_TYPES_HANDLED  "application/x-shockwave-flash"
 #define FAKE_MIME_TYPE  "application/x-lightspark"
@@ -256,8 +257,6 @@ nsPluginInstance::nsPluginInstance(NPP aInstance, int16_t argc, char** argn, cha
 	cout << "Lightspark version " << VERSION << " Copyright 2009-2011 Alessandro Pignotti and others" << endl;
 	sys=NULL;
 	m_sys=new lightspark::SystemState(NULL,0);
-	//As this is the plugin, enable fallback on Gnash for older clips
-	m_sys->enableGnashFallback();
 	//Files running in the plugin have REMOTE sandbox
 	m_sys->securityManager->setSandboxType(lightspark::SecurityManager::REMOTE);
 	//Find flashvars argument
@@ -401,20 +400,20 @@ NPError nsPluginInstance::SetWindow(NPWindow* aWindow)
 
 		lightspark::X11Params *p = new lightspark::X11Params;
 
-		p->visual=mVisual;
+		p->visual=XVisualIDFromVisual(mVisual);
 		p->container=NULL;
 		p->display=mDisplay;
 		p->window=mWindow;
 		p->width=mWidth;
 		p->height=mHeight;
 		//TODO: Refactor into virtual interface
-		LOG(LOG_NO_INFO,"X Window " << hex << p.window << dec << " Width: " << p.width << " Height: " << p.height);
+		LOG(LOG_NO_INFO,"X Window " << hex << p->window << dec << " Width: " << p->width << " Height: " << p->height);
 
-		lightspark::Engine *engine = new lightspark::GtkPluginEngine;
+		lightspark::GtkPlugEngine *engine = new lightspark::GtkPlugEngine();
 		engine->pluginInst=this;
 		engine->x11Params=p;
 
-		m_sys->setParamsAndEngine(engine);
+		m_sys->setEngine(engine);
 	}
 	//draw();
 	return TRUE;
