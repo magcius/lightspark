@@ -20,21 +20,23 @@
 #include <list>
 #include <algorithm>
 
+#include "argconv.h"
 #include "abc.h"
-#include "flashdisplay.h"
 #include "swf.h"
-#include "flash/geom/flashgeom.h"
-#include "flash/system/flashsystem.h"
-#include "parsing/streams.h"
 #include "compat.h"
 #include "class.h"
+
 #include "backends/rendering.h"
 #include "backends/geometry.h"
 #include "backends/image.h"
 #include "backends/glmatrices.h"
-#include "compat.h"
-#include "flash/accessibility/flashaccessibility.h"
-#include "argconv.h"
+
+#include "parsing/streams.h"
+
+#include "scripting/flash/accessibility/flashaccessibility.h"
+#include "scripting/flash/display/flashdisplay.h"
+#include "scripting/flash/geom/flashgeom.h"
+#include "scripting/flash/system/flashsystem.h"
 #include "scripting/flash/net/flashnet.h"
 
 #include <fstream>
