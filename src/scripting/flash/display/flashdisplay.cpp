@@ -35,6 +35,7 @@
 #include "compat.h"
 #include "flash/accessibility/flashaccessibility.h"
 #include "argconv.h"
+#include "scripting/flash/net/flashnet.h"
 
 #include <fstream>
 #include <limits>

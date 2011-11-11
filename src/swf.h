@@ -28,7 +28,7 @@
 #include <string>
 #include "swftypes.h"
 #include "scripting/flash/display/flashdisplay.h"
-#include "scripting/flash/net/flashnet.h"
+#include "scripting/flash/net/ObjectEncoding.h"
 #include "timer.h"
 
 #include "platforms/engineutils.h"

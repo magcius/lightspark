@@ -25,6 +25,7 @@
 #include "timer.h"
 #include "backends/graphics.h"
 #include "backends/netutils.h"
+#include "scripting/flash/net/NetStream.h"
 
 class AudioStream;
 
@@ -32,7 +33,6 @@ namespace lightspark
 {
 
 class AudioDecoder;
-class NetStream;
 
 class Sound: public EventDispatcher, public IThreadJob, public ILoadable
 {

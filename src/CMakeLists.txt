@@ -63,6 +63,9 @@ SET(LIBSPARK_SOURCES
   scripting/flash/geom/flashgeom.cpp
   scripting/flash/media/flashmedia.cpp
   scripting/flash/net/flashnet.cpp
+  scripting/flash/net/ObjectEncoding.cpp
+  scripting/flash/net/NetConnection.cpp
+  scripting/flash/net/NetStream.cpp
   scripting/flash/sensors/flashsensors.cpp
   scripting/flash/system/flashsystem.cpp
   scripting/flash/text/flashtext.cpp
